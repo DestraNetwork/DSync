@@ -1,6 +1,6 @@
 # Destra Network ERC20 Token
 
-This project demonstrates the testing, deployment and interaction of the DestraNetwork smart contract using Hardhat. The project includes a sample contract, a comprehensive test suite, and instructions for running the tests on a locally forked Ethereum mainnet.
+This project demonstrates the testing, deployment and interaction of the DestraNetwork smart contract using Hardhat. The project includes a DSync token contract, a comprehensive test suite, and instructions for running the tests on a locally forked Ethereum mainnet.
 
 ## Getting Started
 
