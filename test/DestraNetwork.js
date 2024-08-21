@@ -8,7 +8,6 @@ describe("DestraNetwork", function () {
   let addr1;
   let addr2;
   let addr3;
-  let routerAddress = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"; // Uniswap router address for mainnet/fork
 
   beforeEach(async function () {
     DestraNetwork = await ethers.getContractFactory("DestraNetwork");
