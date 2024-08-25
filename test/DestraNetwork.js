@@ -7,16 +7,14 @@ describe("DestraNetwork", function () {
   let owner;
   let addr1;
   let addr2;
-  let addr3;
 
   beforeEach(async function () {
     DestraNetwork = await ethers.getContractFactory("DestraNetwork");
     [owner, addr1, addr2, addr3] = await ethers.getSigners();
 
     destra = await DestraNetwork.deploy();
-    await destra.waitForDeployment()
+    await destra.waitForDeployment();
     await destra.openTrading();
-
   });
 
   describe("Deployment", function () {
@@ -76,11 +74,16 @@ describe("DestraNetwork", function () {
       const addr2Balance = await destra.balanceOf(addr2.address);
       expect(addr2Balance).to.equal(ethers.parseUnits("50", 18));
     });
+
+    it("Should revert transfer to zero address", async function () {
+      await expect(
+        destra.transfer(ethers.ZeroAddress, ethers.parseUnits("100", 18))
+      ).to.be.revertedWith("ERC20: transfer to 0x0");
+    });
   });
 
   describe("Fee and Liquidity Management", function () {
     it("Should correctly set fees and manage exemptions", async function () {
-      // Use the getTotalFee function to retrieve initial fees
       const initialBuyFee = await destra.getTotalFee(false); // false indicates buy fee
       const initialSellFee = await destra.getTotalFee(true); // true indicates sell fee
       
@@ -90,19 +93,19 @@ describe("DestraNetwork", function () {
       // Update fees
       await destra.setFees(300, 4000, 200, 3000, 10000);
   
-      // Check updated fees using the getTotalFee function
       const updatedBuyFee = await destra.getTotalFee(false); // false indicates buy fee
       const updatedSellFee = await destra.getTotalFee(true); // true indicates sell fee
   
       expect(updatedBuyFee).to.equal(500); // 300 + 200
       expect(updatedSellFee).to.equal(7000); // 4000 + 3000
     });
+
+    it("Should revert if non-owner tries to set fees", async function () {
+      await expect(
+        destra.connect(addr1).setFees(300, 4000, 200, 3000, 10000)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
   });
-  
-
-
-
-
 
   describe("Airdrop Functionality", function () {
     it("Should distribute tokens correctly through airdrop", async function () {
@@ -127,15 +130,20 @@ describe("DestraNetwork", function () {
       expect(await destra.balanceOf(addr1.address)).to.equal(0);
       expect(await destra.balanceOf(addr2.address)).to.equal(ethers.parseUnits("200", 18));
     });
-  });
 
+    it("Should revert airdrop if addresses and amounts length mismatch", async function () {
+      const addresses = [addr1.address, addr2.address];
+      const amounts = [100];
+
+      await expect(destra.airdrop(addresses, amounts)).to.be.revertedWithoutReason();
+    });
+  });
 
   describe("Blacklist Management", function () {
     it("Should allow owner to blacklist accounts", async function () {
       await destra.transfer(addr1.address, ethers.parseUnits("100", 18));
       await destra.blacklistWallets([addr1.address], true);
       const isBlacklisted = await destra.blacklist(addr1.address);
-      console.log(isBlacklisted)
       expect(isBlacklisted).to.not.equal(0); // Block number is non-zero if blacklisted
 
       await expect(
@@ -153,6 +161,12 @@ describe("DestraNetwork", function () {
       await expect(
         destra.connect(addr1).transfer(addr2.address, ethers.parseUnits("10", 18))
       ).to.not.be.reverted;
+    });
+
+    it("Should not allow non-owner to blacklist accounts", async function () {
+      await expect(
+        destra.connect(addr1).blacklistWallets([addr2.address], true)
+      ).to.be.revertedWith("Caller is not a team member");
     });
   });
 
@@ -172,6 +186,23 @@ describe("DestraNetwork", function () {
       await expect(
         destra.connect(addr1).transferOwnership(addr2.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("Should revert if ownership is transferred to zero address", async function () {
+      await expect(
+        destra.transferOwnership(ethers.ZeroAddress)
+      ).to.be.revertedWith("Ownable: new owner is the zero address");
+    });
+  });
+
+  describe("Wallet Size Limit", function () {
+    it("Should enforce maximum wallet size", async function () {
+      const maxWalletSize = await destra.maxWalletTokens();
+      await destra.transfer(addr1.address, ethers.parseUnits(maxWalletSize.toString(), 18));
+
+      await expect(
+        destra.transfer(addr1.address, ethers.parseUnits("1", 18))
+      ).to.be.revertedWith("Amount exceeds the max wallet size.");
     });
   });
 });

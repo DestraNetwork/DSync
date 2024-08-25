@@ -1,6 +1,14 @@
 # Destra Network ERC20 Token
 
-This project demonstrates the testing, deployment and interaction of the DestraNetwork smart contract using Hardhat. The project includes a DSync token contract, a comprehensive test suite, and instructions for running the tests on a locally forked Ethereum mainnet.
+This project demonstrates the testing, deployment, and interaction of the DestraNetwork smart contract using Hardhat. The project includes a DSync token contract, a comprehensive test suite, and instructions for running the tests on a locally forked Ethereum mainnet.
+
+## Table of Contents
+- [Getting Started](#getting-started)
+- [Installation](#installation)
+- [Running a Local Hardhat Node with Mainnet Fork](#running-a-local-hardhat-node-with-mainnet-fork)
+- [Documentation](#documentation)
+- [Notes](#notes)
+- [Resources](#resources)
 
 ## Getting Started
 
@@ -75,6 +83,11 @@ This project requires you to run tests on a local Hardhat node with a fork of th
     npx hardhat ignition deploy ./ignition/modules/Lock.js
     ```
 
+## Documentation
+
+- **Functional Requirements:** Detailed information about the contract's functional requirements can be found in the [REQUIREMENTS.md](REQUIREMENTS.md) file.
+- **Technical Description:** For a deeper technical overview, please refer to the [TECHNICAL_DESCRIPTION.md](TECHNICAL_DESCRIPTION.md) file.
+
 ### Notes
 
 - **Mainnet Forking:** This project uses Hardhat's mainnet forking feature, which allows you to simulate the Ethereum mainnet on your local machine. This is essential for testing interactions with contracts deployed on the mainnet, like Uniswap's router.
@@ -86,5 +99,3 @@ This project requires you to run tests on a local Hardhat node with a fork of th
 - [Hardhat Documentation](https://hardhat.org/getting-started/)
 - [Ethereum Mainnet Forking](https://hardhat.org/hardhat-network/guides/mainnet-forking.html)
 - [Infura](https://infura.io/)
-
-

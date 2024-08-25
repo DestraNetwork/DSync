@@ -258,14 +258,14 @@ abstract contract Ownable is Context {
 contract DestraNetwork is IERC20, Ownable {
   using Address for address;
 
-  address DEAD = 0x000000000000000000000000000000000000dEaD;
-  address ZERO = 0x0000000000000000000000000000000000000000;
+  address constant DEAD = 0x000000000000000000000000000000000000dEaD;
+  address constant ZERO = 0x0000000000000000000000000000000000000000;
 
   string constant _name = "Destra Network";
   string constant _symbol = "DSync";
   uint8 constant _decimals = 18;
 
-  uint256 _totalSupply = 1_000_000_000 * (10 ** _decimals);
+  uint256 constant _totalSupply = 1_000_000_000 * (10 ** _decimals);
   uint256 _maxBuyTxAmount = (_totalSupply * 1) / 100;
   uint256 _maxSellTxAmount = (_totalSupply * 1) / 100;
   uint256 _maxWalletSize = (_totalSupply * 1) / 100;
@@ -327,6 +327,26 @@ contract DestraNetwork is IERC20, Ownable {
   }
 
   event WalletBlacklisted(address, address, uint256);
+  event TransferFailedToMarketingWallet(uint256 amount);
+  event LiquidityPoolsUpdated(address lp, bool isPool);
+  event SwapBackRateLimitUpdated(uint256 rate);
+  event TxLimitUpdated(uint256 buyNumerator, uint256 sellNumerator, uint256 divisor);
+  event MaxWalletUpdated(uint256 numerator, uint256 divisor);
+  event FeeExemptUpdated(address holder, bool exempt);
+  event TxLimitExemptUpdated(address holder, bool exempt);
+  event TransferTaxToggled(bool status);
+  event FeeReceiversUpdated(address liquidityFeeReceiver, address marketingFeeReceiver);
+  event SwapBackSettingsUpdated(bool enabled, uint256 denominator, uint256 swapAtMinimum);
+  event FundsDistributed(
+    uint256 marketingETH,
+    uint256 liquidityETH,
+    uint256 liquidityTokens
+  );
+  event FeesSet(
+    uint256 totalBuyFees,
+    uint256 totalSellFees,
+    uint256 denominator
+  );
 
   constructor() {
     router = IDEXRouter(routerAddress);
@@ -445,8 +465,10 @@ contract DestraNetwork is IERC20, Ownable {
   ) external onlyTeam {
     for (uint i = 0; i < _wallets.length; i++) {
       if (_blacklist) {
-        blacklistCount++;
-        emit WalletBlacklisted(tx.origin, _wallets[i], block.number);
+        if (blacklist[_wallets[i]] == 0) {
+          blacklistCount++;
+          emit WalletBlacklisted(tx.origin, _wallets[i], block.number);
+        }
       } else {
         if (blacklist[_wallets[i]] != 0) blacklistCount--;
       }
@@ -645,7 +667,7 @@ contract DestraNetwork is IERC20, Ownable {
         value: amountETHMarketing
       }("");
       if (!sentMarketing) {
-        //Failed to transfer to marketing wallet
+        emit TransferFailedToMarketingWallet(amountETHMarketing);
       }
     }
 
@@ -670,10 +692,12 @@ contract DestraNetwork is IERC20, Ownable {
   function addLiquidityPool(address lp, bool isPool) external onlyOwner {
     require(lp != pair, "Can't alter current liquidity pair");
     liquidityPools[lp] = isPool;
+    emit LiquidityPoolsUpdated(lp, isPool);
   }
 
   function setSwapBackRateLimit(uint256 rate) external onlyOwner {
     swapBackRateLimit = rate;
+    emit SwapBackRateLimitUpdated(rate);
   }
 
   function setTxLimit(
@@ -686,19 +710,23 @@ contract DestraNetwork is IERC20, Ownable {
     );
     _maxBuyTxAmount = (_totalSupply * buyNumerator) / divisor;
     _maxSellTxAmount = (_totalSupply * sellNumerator) / divisor;
+    emit TxLimitUpdated(buyNumerator, sellNumerator, divisor);
   }
 
   function setMaxWallet(uint256 numerator, uint256 divisor) external onlyOwner {
     require(numerator > 0 && divisor > 0 && divisor <= 10000);
     _maxWalletSize = (_totalSupply * numerator) / divisor;
+    emit MaxWalletUpdated(numerator, divisor);
   }
 
   function setIsFeeExempt(address holder, bool exempt) external onlyOwner {
     isFeeExempt[holder] = exempt;
+    emit FeeExemptUpdated(holder, exempt);
   }
 
   function setIsTxLimitExempt(address holder, bool exempt) external onlyOwner {
     isTxLimitExempt[holder] = exempt;
+    emit TxLimitExemptUpdated(holder, exempt);
   }
 
   function setFees(
@@ -725,14 +753,17 @@ contract DestraNetwork is IERC20, Ownable {
 
   function toggleTransferTax() external onlyOwner {
     transferTax = !transferTax;
+    emit TransferTaxToggled(transferTax);
   }
 
   function setFeeReceivers(
     address _liquidityFeeReceiver,
     address _marketingFeeReceiver
   ) external onlyOwner {
+    require(_liquidityFeeReceiver != address(0) && _marketingFeeReceiver != address(0), "Cannot set zero address as fee receiver");
     liquidityFeeReceiver = payable(_liquidityFeeReceiver);
     marketingFeeReceiver = payable(_marketingFeeReceiver);
+    emit FeeReceiversUpdated(_liquidityFeeReceiver, _marketingFeeReceiver);
   }
 
   function setSwapBackSettings(
@@ -744,20 +775,10 @@ contract DestraNetwork is IERC20, Ownable {
     swapEnabled = _enabled;
     swapThreshold = _totalSupply / _denominator;
     swapAtMinimum = _swapAtMinimum * (10 ** _decimals);
+    emit SwapBackSettingsUpdated(_enabled, _denominator, _swapAtMinimum);
   }
 
   function getCirculatingSupply() public view returns (uint256) {
     return _totalSupply - (balanceOf(DEAD) + balanceOf(ZERO));
   }
-
-  event FundsDistributed(
-    uint256 marketingETH,
-    uint256 liquidityETH,
-    uint256 liquidityTokens
-  );
-  event FeesSet(
-    uint256 totalBuyFees,
-    uint256 totalSellFees,
-    uint256 denominator
-  );
 }
